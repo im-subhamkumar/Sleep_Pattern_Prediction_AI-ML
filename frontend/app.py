@@ -47,7 +47,7 @@ with col1:
     st.subheader("😴 Predict My Sleep Type")
     if st.button("Analyze Sleep Habits"):
         try:
-            r = requests.post("http://127.0.0.1:5000/predict/sleep", json=user_input)
+            r = requests.post(f"{https://flask-sleep-backend.onrender.com}/predict/sleep", json=user_input)
             r.raise_for_status()
             label = r.json()['cluster_label']
             st.success(f"Your Predicted Sleep Type: {label}")
@@ -59,7 +59,7 @@ with col2:
     st.subheader("🎓 Predict My Academic Profile")
     if st.button("Analyze Academic Profile"):
         try:
-            r = requests.post("http://127.0.0.1:5000/predict/academic", json=user_input)
+            r = requests.post(f"{https://flask-sleep-backend.onrender.com}/predict/sleep", json=user_input)
             r.raise_for_status()
             label = r.json()['cluster_label']
             st.success(f"Your Predicted Academic Profile: {label}")
