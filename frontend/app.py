@@ -5,18 +5,22 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
 from sklearn.decomposition import PCA
+import os
 
 st.set_page_config(page_title="Sleep & Academic Predictor", layout="wide")
+
+# ---- Streamlit Sidebar for Input ----
 
 st.sidebar.header("Enter Your Lifestyle Details")
 study_hours = st.sidebar.slider("Study Hours per day", 0.0, 16.0, 6.0, 0.5)
 screen_time = st.sidebar.slider("Screen Time (hours per day)", 0.0, 10.0, 4.0, 0.5)
 caffeine = st.sidebar.slider("Caffeine Intake (cups per day)", 0, 8, 2)
 activity_daily = st.sidebar.slider("Physical Activity (minutes per day)", 0.0, 180.0, 60.0, 10.0)
-sleep_duration = st.sidebar.slider("Sleep Duration (hours per night)", 2.0, 12.0, 6.0, 0.5)
+sleep_duration = st.sidebar.slider("Sleep Duration (hours per night)", 4.0, 12.0, 7.5, 0.5)
 sleep_quality = st.sidebar.slider("Sleep Quality (1-10)", 1, 10, 7)
 model_choice = st.sidebar.selectbox("Select Clustering Model", ["KMeans", "GMM"])
 
+# Multiply by 2 for minutes/2days required by backend
 activity_total_2_days = activity_daily * 2
 
 user_input = {
@@ -29,10 +33,12 @@ user_input = {
     "model": model_choice
 }
 
+backend_url = "https://flask-sleep-backend.onrender.com"
+
 sleep_cluster_desc = {
     "Night Owl": "🌙 Less sleep, possible late hours, be cautious about daytime fatigue.",
     "Balanced Sleeper": "✅ Good sleep habits, balanced schedule.",
-    "Oversleeper": "😴 Tends to sleep more than average."
+    "Oversleeper": "😴 Tends to sleep more than average. Monitor for oversleeping or lingering tiredness."
 }
 academic_cluster_desc = {
     "Low Performer": "⚠️ Current lifestyle may hinder academic progress.",
@@ -40,14 +46,16 @@ academic_cluster_desc = {
     "High Performer": "🏆 Excellent! Your habits support strong academic results."
 }
 
-st.title("🎓 Student Sleep & Academic Performance Predictor")
+st.title("🛌🎓 Student Sleep & Academic Performance Predictor")
 col1, col2 = st.columns(2)
+
+# ---- Sleep Cluster Prediction ----
 
 with col1:
     st.subheader("😴 Predict My Sleep Type")
     if st.button("Analyze Sleep Habits"):
         try:
-            r = requests.post(f"{https://flask-sleep-backend.onrender.com}/predict/sleep", json=user_input)
+            r = requests.post(f"{backend_url}/predict/sleep", json=user_input, timeout=30)
             r.raise_for_status()
             label = r.json()['cluster_label']
             st.success(f"Your Predicted Sleep Type: {label}")
@@ -55,11 +63,13 @@ with col1:
         except Exception as e:
             st.error(f"Error: {e}")
 
+# ---- Academic Cluster Prediction ----
+
 with col2:
     st.subheader("🎓 Predict My Academic Profile")
     if st.button("Analyze Academic Profile"):
         try:
-            r = requests.post(f"{https://flask-sleep-backend.onrender.com}/predict/sleep", json=user_input)
+            r = requests.post(f"{backend_url}/predict/academic", json=user_input, timeout=30)
             r.raise_for_status()
             label = r.json()['cluster_label']
             st.success(f"Your Predicted Academic Profile: {label}")
@@ -67,24 +77,31 @@ with col2:
         except Exception as e:
             st.error(f"Error: {e}")
 
+# ---- Cluster Visualization ----
+
 st.markdown("---")
 st.subheader("📉 Cluster Visualization")
 viz_choice = st.radio("Choose Cluster to Visualize:", ["Sleep Behavior", "Academic Performance"], horizontal=True)
 
 if st.checkbox("Show Selected Cluster Visualization"):
     try:
+        # Set correct model and mapping file paths
         if viz_choice == "Sleep Behavior":
-            model_path = "../models/kmeans_sleep.pkl" if model_choice == "KMeans" else "../models/gmm_sleep.pkl"
-            mapping_path = "../models/sleep_mapping.pkl" if model_choice == "KMeans" else "../models/gmm_sleep_mapping.pkl"
+            model_fname = "../models/kmeans_sleep.pkl" if model_choice == "KMeans" else "../models/gmm_sleep.pkl"
+            map_fname = "../models/sleep_mapping.pkl" if model_choice == "KMeans" else "../models/gmm_sleep_mapping.pkl"
         else:
-            model_path = "../models/kmeans_academic.pkl" if model_choice == "KMeans" else "../models/gmm_academic.pkl"
-            mapping_path = "../models/academic_mapping.pkl" if model_choice == "KMeans" else "../models/gmm_academic_mapping.pkl"
+            model_fname = "../models/kmeans_academic.pkl" if model_choice == "KMeans" else "../models/gmm_academic.pkl"
+            map_fname = "../models/academic_mapping.pkl" if model_choice == "KMeans" else "../models/gmm_academic_mapping.pkl"
+        scaler_fname = "../models/scaler.pkl"
 
-        with open(model_path, "rb") as f:
+        # Load models and mapping
+        with open(model_fname, "rb") as f:
             model = pickle.load(f)
-        with open(mapping_path, "rb") as f:
+        with open(map_fname, "rb") as f:
             mapping = pickle.load(f)
-        scaler = pickle.load(open("../models/scaler.pkl", "rb"))
+        with open(scaler_fname, "rb") as f:
+            scaler = pickle.load(f)
+
         df = pd.read_csv("../data/student_sleep_patterns_updated.csv")
         df["Physical_Activity"] = df["Physical_Activity"] / 2 / 60
         features = [
@@ -100,7 +117,7 @@ if st.checkbox("Show Selected Cluster Visualization"):
         viz_df = pd.DataFrame(data_pca, columns=["PCA1", "PCA2"])
         viz_df["Cluster"] = [str(c) for c in mapped_clusters]
 
-        user_features = [
+        user_feats = [
             user_input["Study_Hours"],
             user_input["Screen_Time"],
             user_input["Caffeine_Intake"],
@@ -108,7 +125,7 @@ if st.checkbox("Show Selected Cluster Visualization"):
             user_input["Sleep_Duration"],
             user_input["Sleep_Quality"]
         ]
-        user_scaled = scaler.transform([user_features])
+        user_scaled = scaler.transform([user_feats])
         user_pca = pca.transform(user_scaled)
 
         fig, ax = plt.subplots(figsize=(7, 5))
@@ -127,6 +144,8 @@ if st.checkbox("Show Selected Cluster Visualization"):
         st.pyplot(fig)
     except Exception as e:
         st.error(f"Visualization error: {e}")
+
+# ---- EDA Section ----
 
 st.markdown("---")
 st.header("📊 Explore the Data")
