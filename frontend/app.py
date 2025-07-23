@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
 from sklearn.decomposition import PCA
-import os
 
 st.set_page_config(page_title="Sleep & Academic Predictor", layout="wide")
 
@@ -18,6 +17,7 @@ sleep_duration = st.sidebar.slider("Sleep Duration (hours per night)", 4.0, 12.0
 sleep_quality = st.sidebar.slider("Sleep Quality (1-10)", 1, 10, 7)
 model_choice = st.sidebar.selectbox("Select Clustering Model", ["KMeans", "GMM"])
 
+# Convert activity to minutes over 2 days as backend expects
 activity_total_2days = activity_daily * 2
 
 user_input = {
@@ -30,7 +30,7 @@ user_input = {
     "model": model_choice
 }
 
-# Set this to your Render Flask backend URL:
+# Update to your deployed backend URL
 backend_url = "https://flask-sleep-backend.onrender.com"
 
 sleep_cluster_desc = {
@@ -84,6 +84,7 @@ if st.checkbox("Show Selected Cluster Visualization"):
         else:
             model_fname = f"{model_folder}/kmeans_academic.pkl" if model_choice == "KMeans" else f"{model_folder}/gmm_academic.pkl"
             map_fname = f"{model_folder}/academic_mapping.pkl" if model_choice == "KMeans" else f"{model_folder}/gmm_academic_mapping.pkl"
+
         scaler_fname = f"{model_folder}/scaler.pkl"
 
         with open(model_fname, "rb") as f:
@@ -105,6 +106,7 @@ if st.checkbox("Show Selected Cluster Visualization"):
         mapped_clusters = [mapping.get(c, c) for c in clusters]
         pca = PCA(n_components=2)
         data_pca = pca.fit_transform(data_scaled)
+
         viz_df = pd.DataFrame(data_pca, columns=["PCA1", "PCA2"])
         viz_df["Cluster"] = [str(c) for c in mapped_clusters]
 
@@ -138,6 +140,7 @@ if st.checkbox("Show Selected Cluster Visualization"):
 
 st.markdown("---")
 st.header("📊 Explore the Data")
+
 if st.checkbox("Show Data Insights and Visualizations"):
     try:
         df = pd.read_csv("data/student_sleep_patterns_updated.csv")

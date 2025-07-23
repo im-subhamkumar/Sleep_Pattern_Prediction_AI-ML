@@ -10,9 +10,9 @@ CORS(app)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'models')
-DATA_DIR = os.path.join(BASE_DIR, 'data')  # Optional, for EDA
+DATA_DIR = os.path.join(BASE_DIR, 'data')  # Optional for EDA
 
-# Load models & mappings
+# Load all models and mappings
 scaler = pickle.load(open(os.path.join(MODEL_DIR, "scaler.pkl"), "rb"))
 kmeans_sleep = pickle.load(open(os.path.join(MODEL_DIR, "kmeans_sleep.pkl"), "rb"))
 gmm_sleep = pickle.load(open(os.path.join(MODEL_DIR, "gmm_sleep.pkl"), "rb"))
@@ -66,6 +66,16 @@ def predict_academic():
         pred = academic_mapping[raw_pred]
         label = academic_labels.get(pred)
     return jsonify({"cluster_label": label})
+
+# Optional EDA endpoint
+@app.route("/eda-data", methods=["GET"])
+def eda_data():
+    try:
+        df = pd.read_csv(os.path.join(DATA_DIR, "student_sleep_patterns_updated.csv"))
+        df["Physical_Activity"] = df["Physical_Activity"] / 2 / 60
+        return df.describe(include="all").to_json()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
