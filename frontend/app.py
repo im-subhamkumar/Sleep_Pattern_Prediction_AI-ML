@@ -9,8 +9,6 @@ import os
 
 st.set_page_config(page_title="Sleep & Academic Predictor", layout="wide")
 
-# ---- Streamlit Sidebar for Input ----
-
 st.sidebar.header("Enter Your Lifestyle Details")
 study_hours = st.sidebar.slider("Study Hours per day", 0.0, 16.0, 6.0, 0.5)
 screen_time = st.sidebar.slider("Screen Time (hours per day)", 0.0, 10.0, 4.0, 0.5)
@@ -20,19 +18,19 @@ sleep_duration = st.sidebar.slider("Sleep Duration (hours per night)", 4.0, 12.0
 sleep_quality = st.sidebar.slider("Sleep Quality (1-10)", 1, 10, 7)
 model_choice = st.sidebar.selectbox("Select Clustering Model", ["KMeans", "GMM"])
 
-# Multiply by 2 for minutes/2days required by backend
-activity_total_2_days = activity_daily * 2
+activity_total_2days = activity_daily * 2
 
 user_input = {
     "Study_Hours": study_hours,
     "Screen_Time": screen_time,
     "Caffeine_Intake": caffeine,
-    "Physical_Activity": activity_total_2_days,
+    "Physical_Activity": activity_total_2days,
     "Sleep_Duration": sleep_duration,
     "Sleep_Quality": sleep_quality,
     "model": model_choice
 }
 
+# Set this to your Render Flask backend URL:
 backend_url = "https://flask-sleep-backend.onrender.com"
 
 sleep_cluster_desc = {
@@ -49,8 +47,6 @@ academic_cluster_desc = {
 st.title("🛌🎓 Student Sleep & Academic Performance Predictor")
 col1, col2 = st.columns(2)
 
-# ---- Sleep Cluster Prediction ----
-
 with col1:
     st.subheader("😴 Predict My Sleep Type")
     if st.button("Analyze Sleep Habits"):
@@ -62,8 +58,6 @@ with col1:
             st.markdown(sleep_cluster_desc.get(label, "Prediction made."))
         except Exception as e:
             st.error(f"Error: {e}")
-
-# ---- Academic Cluster Prediction ----
 
 with col2:
     st.subheader("🎓 Predict My Academic Profile")
@@ -77,24 +71,21 @@ with col2:
         except Exception as e:
             st.error(f"Error: {e}")
 
-# ---- Cluster Visualization ----
-
 st.markdown("---")
 st.subheader("📉 Cluster Visualization")
 viz_choice = st.radio("Choose Cluster to Visualize:", ["Sleep Behavior", "Academic Performance"], horizontal=True)
 
 if st.checkbox("Show Selected Cluster Visualization"):
     try:
-        # Set correct model and mapping file paths
+        model_folder = "models"
         if viz_choice == "Sleep Behavior":
-            model_fname = "../models/kmeans_sleep.pkl" if model_choice == "KMeans" else "../models/gmm_sleep.pkl"
-            map_fname = "../models/sleep_mapping.pkl" if model_choice == "KMeans" else "../models/gmm_sleep_mapping.pkl"
+            model_fname = f"{model_folder}/kmeans_sleep.pkl" if model_choice == "KMeans" else f"{model_folder}/gmm_sleep.pkl"
+            map_fname = f"{model_folder}/sleep_mapping.pkl" if model_choice == "KMeans" else f"{model_folder}/gmm_sleep_mapping.pkl"
         else:
-            model_fname = "../models/kmeans_academic.pkl" if model_choice == "KMeans" else "../models/gmm_academic.pkl"
-            map_fname = "../models/academic_mapping.pkl" if model_choice == "KMeans" else "../models/gmm_academic_mapping.pkl"
-        scaler_fname = "../models/scaler.pkl"
+            model_fname = f"{model_folder}/kmeans_academic.pkl" if model_choice == "KMeans" else f"{model_folder}/gmm_academic.pkl"
+            map_fname = f"{model_folder}/academic_mapping.pkl" if model_choice == "KMeans" else f"{model_folder}/gmm_academic_mapping.pkl"
+        scaler_fname = f"{model_folder}/scaler.pkl"
 
-        # Load models and mapping
         with open(model_fname, "rb") as f:
             model = pickle.load(f)
         with open(map_fname, "rb") as f:
@@ -102,7 +93,7 @@ if st.checkbox("Show Selected Cluster Visualization"):
         with open(scaler_fname, "rb") as f:
             scaler = pickle.load(f)
 
-        df = pd.read_csv("../data/student_sleep_patterns_updated.csv")
+        df = pd.read_csv("data/student_sleep_patterns_updated.csv")
         df["Physical_Activity"] = df["Physical_Activity"] / 2 / 60
         features = [
             "Study_Hours", "Screen_Time", "Caffeine_Intake",
@@ -111,7 +102,7 @@ if st.checkbox("Show Selected Cluster Visualization"):
         data = df[features].dropna()
         data_scaled = scaler.transform(data)
         clusters = model.predict(data_scaled)
-        mapped_clusters = [mapping[c] for c in clusters]
+        mapped_clusters = [mapping.get(c, c) for c in clusters]
         pca = PCA(n_components=2)
         data_pca = pca.fit_transform(data_scaled)
         viz_df = pd.DataFrame(data_pca, columns=["PCA1", "PCA2"])
@@ -145,13 +136,11 @@ if st.checkbox("Show Selected Cluster Visualization"):
     except Exception as e:
         st.error(f"Visualization error: {e}")
 
-# ---- EDA Section ----
-
 st.markdown("---")
 st.header("📊 Explore the Data")
 if st.checkbox("Show Data Insights and Visualizations"):
     try:
-        df = pd.read_csv("../data/student_sleep_patterns_updated.csv")
+        df = pd.read_csv("data/student_sleep_patterns_updated.csv")
         df["Physical_Activity"] = df["Physical_Activity"] / 2 / 60
         features = [
             "Study_Hours", "Screen_Time", "Caffeine_Intake",
@@ -170,7 +159,7 @@ if st.checkbox("Show Data Insights and Visualizations"):
         st.pyplot(fig_corr)
 
         st.subheader("Elbow Method for Optimal Clusters (KMeans)")
-        scaler = pickle.load(open("../models/scaler.pkl", "rb"))
+        scaler = pickle.load(open("models/scaler.pkl", "rb"))
         data_scaled = scaler.transform(df[features].dropna())
         max_clusters = min(10, len(data_scaled))
         sse = []

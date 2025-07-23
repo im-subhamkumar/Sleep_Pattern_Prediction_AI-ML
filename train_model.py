@@ -8,9 +8,8 @@ from sklearn.mixture import GaussianMixture
 
 print("Starting model training process...")
 
-# Load and preprocess
 df = pd.read_csv("data/student_sleep_patterns_updated.csv")
-df["Physical_Activity"] = df["Physical_Activity"] / 2 / 60  # mins/2days → hours/day
+df["Physical_Activity"] = df["Physical_Activity"] / 2 / 60  # min/2days → hours/day
 
 features = [
     "Study_Hours", "Screen_Time", "Caffeine_Intake",
@@ -49,15 +48,15 @@ academic_mapping = get_ordered_mapping(kmeans_academic, 'Study_Hours', features)
 gmm_sleep_mapping = get_gmm_ordered_mapping(gmm_sleep, data_scaled, data, "Sleep_Duration")
 gmm_academic_mapping = get_gmm_ordered_mapping(gmm_academic, data_scaled, data, "Study_Hours")
 
-os.makedirs("models", exist_ok=True)
-pickle.dump(scaler, open("models/scaler.pkl", "wb"))
-pickle.dump(kmeans_sleep, open("models/kmeans_sleep.pkl", "wb"))
-pickle.dump(gmm_sleep, open("models/gmm_sleep.pkl", "wb"))
-pickle.dump(kmeans_academic, open("models/kmeans_academic.pkl", "wb"))
-pickle.dump(gmm_academic, open("models/gmm_academic.pkl", "wb"))
-pickle.dump(sleep_mapping, open("models/sleep_mapping.pkl", "wb"))
-pickle.dump(academic_mapping, open("models/academic_mapping.pkl", "wb"))
-pickle.dump(gmm_sleep_mapping, open("models/gmm_sleep_mapping.pkl", "wb"))
-pickle.dump(gmm_academic_mapping, open("models/gmm_academic_mapping.pkl", "wb"))
+os.makedirs("backend/models", exist_ok=True)
+pickle.dump(scaler, open("backend/models/scaler.pkl", "wb"))
+pickle.dump(kmeans_sleep, open("backend/models/kmeans_sleep.pkl", "wb"))
+pickle.dump(gmm_sleep, open("backend/models/gmm_sleep.pkl", "wb"))
+pickle.dump(kmeans_academic, open("backend/models/kmeans_academic.pkl", "wb"))
+pickle.dump(gmm_academic, open("backend/models/gmm_academic.pkl", "wb"))
+pickle.dump(sleep_mapping, open("backend/models/sleep_mapping.pkl", "wb"))
+pickle.dump(academic_mapping, open("backend/models/academic_mapping.pkl", "wb"))
+pickle.dump(gmm_sleep_mapping, open("backend/models/gmm_sleep_mapping.pkl", "wb"))
+pickle.dump(gmm_academic_mapping, open("backend/models/gmm_academic_mapping.pkl", "wb"))
 
-print("✅ Models and mappings successfully trained and saved to /models.")
+print("✅ Models and mappings saved to backend/models/")
